@@ -6,12 +6,11 @@ using namespace std;
 
 enum KeyCodes { ENTER = 13, ESCAPE = 27, LEFT = 75, RIGHT = 77, UP = 72, DOWN = 80, SPACEBAR = 32 };
 enum Colors { DARKGREEN = 2, RED = 12, YELLOW = 14, BLUE = 9 , ORENGELINGIN = 13};
-enum Objects { HALL, WALL, COIN, ENEMY , BOMB, EXIT};
+enum Objects { HALL, WALL, COIN, ENEMY , BOMB, EXIT, ECSPLOSIVE};
 
 void generLocation(HANDLE h, int location, int HEIGHT, int WIDTH);
 void dvishik(HANDLE h, int location, int HEIGHT, int WIDTH);
 void infoGame(int addCoin, int addBomb, int minesHP);
-void placeABomb(int location[][50], int HEIGHT, int WIDTH);
 
 void generLocation(HANDLE h, int location[][50], int HEIGHT, int WIDTH)
 {
@@ -77,6 +76,12 @@ void generLocation(HANDLE h, int location[][50], int HEIGHT, int WIDTH)
 				SetConsoleTextAttribute(h, ORENGELINGIN);
 				cout << (char)26;
 				break;
+			case ECSPLOSIVE:
+				SetConsoleTextAttribute(h, YELLOW);
+				cout << (char)177;
+				Sleep(500);
+				cout << " ";
+				break;
 			default:
 				cout << location[y][x];
 				break;
@@ -106,9 +111,20 @@ void dvishik(HANDLE h, int location[][50],int HEIGHT, int WIDTH)
 		SetConsoleTextAttribute(h, BLUE);
 		cout << " ";
 
-		switch (code) {
+		switch (code) 
+		{
 		case SPACEBAR:
-			placeABomb(location, position.Y, position.X);
+			for (int i = 5;i > 0;--i)
+			{
+				SetConsoleCursorPosition(h, position);
+				cout << i;
+				cout << " ";
+				Sleep(1000);
+			}
+			location[position.Y][position.X + 1] = ECSPLOSIVE;
+			location[position.Y][position.X - 1] = ECSPLOSIVE;
+			location[position.Y + 1][position.X] = ECSPLOSIVE;
+			location[position.Y - 1][position.X] = ECSPLOSIVE;
 			break;
 		case ESCAPE:
 			// cout << "ESCAPE\n";
@@ -169,19 +185,6 @@ void infoGame(int addCoin, int addBomb, int minesHP)
 	cout << "HP:" << hp - minesHP << "\n";
 	cout << "Coin:" << coin + addCoin << "\n";
 	cout << "Bomb:" << bomb + addBomb << "\n";
-}
-
-void placeABomb(int location[][50], int HEIGHT, int WIDTH)
-{	
-	if (location[HEIGHT][WIDTH] == HALL) 
-	{
-		for (int i = 5;i > 0;--i)
-		{
-			cout << i;
-			cout << HALL;
-			Sleep(1000);
-		}
-	}
 }
 
 int main()
