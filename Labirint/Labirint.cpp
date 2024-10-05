@@ -6,11 +6,14 @@ using namespace std;
 
 enum KeyCodes { ENTER = 13, ESCAPE = 27, LEFT = 75, RIGHT = 77, UP = 72, DOWN = 80, SPACEBAR = 32 };
 enum Colors { DARKGREEN = 2, RED = 12, YELLOW = 14, BLUE = 9 , ORENGELINGIN = 13};
-enum Objects { HALL, WALL, COIN, ENEMY , BOMB, EXIT, ECSPLOSIVE};
+enum Objects { HALL, WALL, COIN, ENEMY , BOMB, EXIT, UNBRAKINGWALL};
 
 void generLocation(HANDLE h, int location, int HEIGHT, int WIDTH);
 void dvishik(HANDLE h, int location, int HEIGHT, int WIDTH);
-void infoGame(int addCoin, int addBomb, int minesHP);
+void countHp(int minesHP, HANDLE h, int HEIGHT, int WIDTH);
+bool countCoin(int addCoin, HANDLE h, int HEIGHT, int WIDTH);
+bool countBomb(int addBomb, int minusBomb, HANDLE h, int HEIGHT, int WIDTH);
+void victori(HANDLE h);
 
 void generLocation(HANDLE h, int location[][50], int HEIGHT, int WIDTH)
 {
@@ -22,7 +25,7 @@ void generLocation(HANDLE h, int location[][50], int HEIGHT, int WIDTH)
 			location[y][x] = rand() % 5;
 
 			if (x == 0 || y == 0 || x == WIDTH - 1 || y == HEIGHT - 1)
-				location[y][x] = WALL;
+				location[y][x] = UNBRAKINGWALL;
 
 			if (x == 0 && y == 2 || x == WIDTH - 1 && y == HEIGHT - 3)
 				location[y][x] = HALL;
@@ -60,6 +63,10 @@ void generLocation(HANDLE h, int location[][50], int HEIGHT, int WIDTH)
 				SetConsoleTextAttribute(h, DARKGREEN);
 				cout << (char)177;
 				break;
+			case UNBRAKINGWALL:
+				SetConsoleTextAttribute(h, DARKGREEN);
+				cout << (char)177;
+				break;
 			case COIN: 
 				SetConsoleTextAttribute(h, YELLOW);
 				cout << (char)36;
@@ -76,12 +83,6 @@ void generLocation(HANDLE h, int location[][50], int HEIGHT, int WIDTH)
 				SetConsoleTextAttribute(h, ORENGELINGIN);
 				cout << (char)26;
 				break;
-			case ECSPLOSIVE:
-				SetConsoleTextAttribute(h, YELLOW);
-				cout << (char)177;
-				Sleep(500);
-				cout << " ";
-				break;
 			default:
 				cout << location[y][x];
 				break;
@@ -89,7 +90,9 @@ void generLocation(HANDLE h, int location[][50], int HEIGHT, int WIDTH)
 		}
 		cout << "\n";
 	}
-	infoGame(0,0,0);
+	countHp(0,h,HEIGHT, WIDTH);
+	countCoin(0, h, HEIGHT, WIDTH);
+	countBomb(0, 0, h, HEIGHT, WIDTH);
 }
 
 void dvishik(HANDLE h, int location[][50],int HEIGHT, int WIDTH)
@@ -114,35 +117,66 @@ void dvishik(HANDLE h, int location[][50],int HEIGHT, int WIDTH)
 		switch (code) 
 		{
 		case SPACEBAR:
-			for (int i = 5;i > 0;--i)
+		{  
+			if (countBomb(0, 1, h, HEIGHT, WIDTH) == true)
 			{
-				SetConsoleCursorPosition(h, position);
-				cout << i;
-				cout << " ";
-				Sleep(1000);
+				for (int i = 2; i > 0; --i) {
+					SetConsoleCursorPosition(h, position);
+					SetConsoleTextAttribute(h, ORENGELINGIN);
+					cout << i;
+					Sleep(1000);
+				}
+
+				COORD explosion[4] =
+				{
+					{position.X + 1, position.Y},
+					{position.X - 1, position.Y},
+					{position.X, position.Y + 1},
+					{position.X, position.Y - 1}
+				};
+
+				for (int i = 0; i < 4; i++)
+				{
+					if (location[explosion[i].Y][explosion[i].X] != UNBRAKINGWALL && location[explosion[i].Y][explosion[i].X] != COIN && location[explosion[i].Y][explosion[i].X] != EXIT)
+					{
+						SetConsoleCursorPosition(h, explosion[i]);
+						SetConsoleTextAttribute(h, YELLOW);
+						cout << (char)177;
+					}
+				}
+
+				Sleep(500);
+
+				for (int i = 0; i < 4; i++)
+				{
+					if (location[explosion[i].Y][explosion[i].X] != UNBRAKINGWALL && location[explosion[i].Y][explosion[i].X] != COIN && location[explosion[i].Y][explosion[i].X] != EXIT)
+					{
+						location[explosion[i].Y][explosion[i].X] = HALL;
+						SetConsoleCursorPosition(h, explosion[i]);
+						cout << " ";
+					}
+				}
+				break;
 			}
-			location[position.Y][position.X + 1] = ECSPLOSIVE;
-			location[position.Y][position.X - 1] = ECSPLOSIVE;
-			location[position.Y + 1][position.X] = ECSPLOSIVE;
-			location[position.Y - 1][position.X] = ECSPLOSIVE;
 			break;
+		}
 		case ESCAPE:
-			// cout << "ESCAPE\n";
+			exit(0);
 			break;
 		case RIGHT:
-			if (location[position.Y][position.X + 1] != WALL)
+			if (location[position.Y][position.X + 1] != WALL && location[position.Y][position.X + 1] != UNBRAKINGWALL)
 				position.X++;
 			break;
 		case LEFT:
-			if (location[position.Y][position.X - 1] != WALL)
+			if (location[position.Y][position.X - 1] != WALL && location[position.Y][position.X - 1] != UNBRAKINGWALL)
 				position.X--;
 			break;
 		case UP:
-			if (location[position.Y - 1][position.X] != WALL)
+			if (location[position.Y - 1][position.X] != WALL && location[position.Y - 1][position.X] != UNBRAKINGWALL)
 				position.Y--;
 			break;
 		case DOWN:
-			if (location[position.Y + 1][position.X] != WALL)
+			if (location[position.Y + 1][position.X] != WALL && location[position.Y + 1][position.X] != UNBRAKINGWALL)
 				position.Y++;
 			break;
 		default:
@@ -157,34 +191,121 @@ void dvishik(HANDLE h, int location[][50],int HEIGHT, int WIDTH)
 		if (location[position.Y][position.X] == COIN) 
 		{
 			location[position.Y][position.X] = HALL;
-			//infoGame(1, 0, 0);
+			countCoin(1,h,HEIGHT,WIDTH);
 		}
 		else if (location[position.Y][position.X] == BOMB)
 		{
 			location[position.Y][position.X] = HALL;
-			//infoGame(0, 1, 0);
+			countBomb(1,0,h,HEIGHT, WIDTH);
 		}
 		else if (location[position.Y][position.X] == ENEMY)
 		{
 			location[position.Y][position.X] = HALL;
-			//infoGame(0, 0, 5);
+			countHp(1,h,HEIGHT, WIDTH);
 		}
 		else if (location[position.Y][position.X] == EXIT)
 		{
-			location[position.Y][position.X] = HALL;
+			if (countCoin(0, h, HEIGHT, WIDTH) == true)
+			{
+				victori(h);
+			}
 		}
 	}
 }
 
-void infoGame(int addCoin, int addBomb, int minesHP)
+void victori(HANDLE h)
 {
-	int coin = 0;
-	int bomb = 0;
-	int hp = 10;
+	COORD infoPos = { 0,0 };
+	SetConsoleCursorPosition(h, infoPos);
+	for (int y = 0; y < 70; y++)
+	{
+		for (int x = 0; x < 70; x++)
+		{
+			if (x == 0 && y == 0)
+			{
+				SetConsoleTextAttribute(h, DARKGREEN);
+				cout << "Victor!";
+			}
+			cout << " ";
+		}
+	}
+	Sleep(5000);
+	exit(0);
+}
 
-	cout << "HP:" << hp - minesHP << "\n";
-	cout << "Coin:" << coin + addCoin << "\n";
-	cout << "Bomb:" << bomb + addBomb << "\n";
+void countHp(int minesHP, HANDLE h, int HEIGHT,int WIDTH)
+{
+	static int hp = 2;
+
+	hp -= minesHP;
+
+	if (hp == 0)
+	{
+		COORD infoPos = { 0,0 };
+		SetConsoleCursorPosition(h, infoPos);
+		for (int y = 0; y < 70; y++)
+		{
+			for (int x = 0; x < 70; x++)
+			{
+				if (x == 0 && y == 0)
+				{
+					SetConsoleTextAttribute(h, RED);
+					cout << "Game Over!";
+				}
+				cout << " ";
+			}
+		}
+		Sleep(5000);
+		exit(0);
+	}
+
+	COORD infoPos = { 0, HEIGHT + 1 }; 
+	SetConsoleCursorPosition(h, infoPos);
+
+	SetConsoleTextAttribute(h, DARKGREEN);
+	cout << "HP:" << hp<< "\n";
+
+}
+
+bool countCoin(int addCoin, HANDLE h, int HEIGHT, int WIDTH)
+{
+	static int coin = 00;
+
+	coin += addCoin;
+
+	if (coin >= 10)
+	{
+		return true;
+	}
+
+	COORD infoPos = { 0, HEIGHT + 2 };
+	SetConsoleCursorPosition(h, infoPos);
+
+	SetConsoleTextAttribute(h, YELLOW);
+	cout << "Coin:" << coin << "\n";
+
+	return false;
+}
+
+bool countBomb(int addBomb, int minusBomb, HANDLE h, int HEIGHT, int WIDTH)
+{
+	static int bomb = 0;
+
+	bomb += addBomb;
+
+	if (minusBomb == 1 && bomb >= 1)
+	{
+		bomb -= 1;
+		return true;
+	}
+
+	COORD infoPos = { 0, HEIGHT + 3 };
+	SetConsoleCursorPosition(h, infoPos);
+
+	SetConsoleTextAttribute(h, BLUE);
+	cout << "Bomb:" << bomb << "\n";
+
+	return false;
 }
 
 int main()
@@ -206,5 +327,7 @@ int main()
 
 	generLocation(h,location, HEIGHT, WIDTH);
 	dvishik(h,location,HEIGHT,WIDTH);
-	infoGame(0,0,0);
+	countHp(0,h,HEIGHT, WIDTH);
+	countCoin(0, h, HEIGHT, WIDTH);
+	countBomb(0, 0, h, HEIGHT, WIDTH);
 }
